@@ -26,7 +26,7 @@ sDirScript = fileparts( sTmpFileScript );
 
 disp( 'step 1, get maxis' );
 for iDir = 1 : numel( csDirGrads )
-    system( [ sDirScript, '/retest_getGradsMax', ' ', csDirGrads{iDir}, ...
+    system( [ sDirScript, '/retest_getGradsMaxSign', ' ', csDirGrads{iDir}, ...
         ' ', sDirMaxGrads, ' ', sDirTmp ] );
 end
 
