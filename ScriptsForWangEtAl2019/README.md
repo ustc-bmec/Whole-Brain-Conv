@@ -1,4 +1,4 @@
-These scripts are uploaded for helping readers with reprocuding Wang et al. 2019's work.
+These scripts are uploaded for helping readers to reprocude Wang et al. 2019's work.
 To run the scripts, the following softwares are needed
 1. AFNI https://afni.nimh.nih.gov
 2. PyTorch
