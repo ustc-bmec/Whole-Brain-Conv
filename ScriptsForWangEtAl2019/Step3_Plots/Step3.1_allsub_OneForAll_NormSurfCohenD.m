@@ -18,7 +18,7 @@ sTmpFileScript = mfilename( 'fullpath' );
 sDirScript = fileparts( sTmpFileScript );
 
 disp( 'step 1, get maxis' );
-system( [ sDirScript, '/allsub_getGradsMax', ' ', sDirGrads, ...
+system( [ sDirScript, '/allsub_getGradsMaxSign', ' ', sDirGrads, ...
     ' ', sDirMaxGrads, ' ', sDirTmp ] );
 
 disp( 'step 2, get 4mm smoothed surf of gradients' );
