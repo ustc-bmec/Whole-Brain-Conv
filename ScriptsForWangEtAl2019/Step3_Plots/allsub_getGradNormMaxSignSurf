@@ -1,0 +1,62 @@
+#!/bin/bash
+# sub-script of allsubjects, to get normed abs max of visualization of gradients,
+# from the allsub_getGradNormMaxSign
+
+if [ $# \> 0 ]
+then # dataMax folder designated
+    dir_dataMax=$1
+else
+    dir_main=/home/gululu/Disks/DataMore/Data2017/ProjBoldNN/Analysis_ForAll_0510
+    dir_dataMax=$dir_main/MaxSignGradients
+fi
+if [ $# \> 1 ]
+then # output folder inputted
+    dir_Out=$2
+else
+    dir_Out=$dir_main/NormMaxSignGradients
+fi
+if [ $# \> 2 ]
+then # tmp folder designated
+    dir_tmp=$3/tmp153
+else
+    dir_tmp=/home/gululu/Disks/Fast/TMP/tmp153
+fi
+# dir_data=$dir_main/Tmp # for debug
+lst_hemi="lh rh"
+
+for key_hemi in $lst_hemi
+do
+    # get the data list
+    echo $dir_dataMax
+    lst_data=`ls $dir_dataMax/*$key_hemi'_'s4.func.gii`
+
+    # make the output fold
+    if [ ! -d $dir_Out ]
+    then
+        mkdir $dir_Out
+    fi
+
+    # go
+    for file_gradSurf in $lst_data
+    do
+        if [ -d $dir_tmp ]; then rm -r $dir_tmp; fi # clear the tmp folder
+        mkdir $dir_tmp
+
+        # get the info of the
+        nam_data=`basename $file_gradSurf`
+        afx_data=`echo $nam_data | cut -d _ -f 2-`
+
+        # output
+        # get max of the volume for normalization
+        3dcalc -a $file_gradSurf -expr "abs(a)" -prefix AbsGrad.func.gii
+        VolMax=`3dmaskave -quiet -max AbsGrad.func.gii`
+        # output the result volume
+        3dcalc -a $file_gradSurf -expr "100*a/$VolMax" \
+            -prefix NormMaxSign_$afx_data
+        # clean up
+        rm AbsGrad.func.gii
+        mv NormMaxSign_$afx_data $dir_Out/NormMaxSign_$afx_data
+
+        # break # for debug
+    done # for data
+done # for key_hemi

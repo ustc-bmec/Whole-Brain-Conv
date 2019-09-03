@@ -1,0 +1,33 @@
+#!/bin/bash
+# To make HCP cifti Cohen D results into gifti files
+# plz replace the file pathes in basic setups with yours.
+# 2019-03   Xiaoxiao    wrote it
+
+# setups
+dir_Tmp=./tmp901
+dir_Main=./
+dir_Data=$dir_Main/HCP_S1200_GroupAvg_v1
+dir_Out=$dir_Main/HCP_fsaverage
+dir_HcpPip=./HCPPipelines
+dir_StdMesh=$dir_HcpPip/global/templates/standard_mesh_atlases
+nam_Data=HCP_S1200_997_tfMRI_ALLTASKS_level2_cohensd_hp200_s4_MSMAll.dscalar.nii
+file_Data=$dir_Data/$nam_Data
+key_Data=$(echo $nam_Data | cut -d '.' -f 1)
+
+wb_command -cifti-separate $file_Data \
+    COLUMN -metric CORTEX_LEFT $dir_Tmp/AllTask_MSMALL_lh.func.gii
+wb_command -metric-resample $dir_Tmp/AllTask_MSMALL_lh.func.gii \
+    $dir_StdMesh/resample_fsaverage/fs_LR-deformed_to-fsaverage.L.sphere.32k_fs_LR.surf.gii \
+    $dir_StdMesh/resample_fsaverage/fsaverage_std_sphere.L.164k_fsavg_L.surf.gii \
+    ADAP_BARY_AREA $dir_Out/$key_Data'_lh'.func.gii \
+    -area-metrics $dir_StdMesh/resample_fsaverage/fs_LR.L.midthickness_va_avg.32k_fs_LR.shape.gii \
+    $dir_StdMesh/resample_fsaverage/fsaverage.L.midthickness_va_avg.164k_fsavg_L.shape.gii
+
+wb_command -cifti-separate $file_Data \
+    COLUMN -metric CORTEX_RIGHT $dir_Tmp/AllTask_MSMALL_rh.func.gii
+wb_command -metric-resample $dir_Tmp/AllTask_MSMALL_rh.func.gii \
+    $dir_StdMesh/resample_fsaverage/fs_LR-deformed_to-fsaverage.R.sphere.32k_fs_LR.surf.gii \
+    $dir_StdMesh/resample_fsaverage/fsaverage_std_sphere.R.164k_fsavg_R.surf.gii \
+    ADAP_BARY_AREA $dir_Out/$key_Data'_rh'.func.gii \
+    -area-metrics $dir_StdMesh/resample_fsaverage/fs_LR.R.midthickness_va_avg.32k_fs_LR.shape.gii \
+    $dir_StdMesh/resample_fsaverage/fsaverage.R.midthickness_va_avg.164k_fsavg_R.shape.gii

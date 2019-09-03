@@ -1,0 +1,93 @@
+#!/bin/bash
+
+dir_AnalysisRetest=/home/gululu/Disks/NeuroRaid/PlusRaid/HCP_Retest_Analysis
+lst_Evens=("2bk-body" "0bk-body" "lf" "rf" "lh" "t")
+lst_Tasks=("WM" "WM" "MOTOR" "MOTOR" "MOTOR" "MOTOR")
+dir_Analysis=/home/gululu/Disks/NeuroRaid/PlusRaid/HCP_Analysis
+lst_Copes=("cope1" "cope5" "cope2" "cope4" "cope3" "cope6")
+num_Copes=${#lst_Copes[@]}
+dir_Out=/home/gululu/Disks/DataMore/Data2017/ProjBoldNN/Analysis_ForAll/Copes_HCP
+dir_Tmp=/home/gululu/Disks/Fast/TMP/tmp903
+key_TestRetest=("Retest")
+
+if [ ! -d $dir_Out ]
+then
+    mkdir $dir_Out
+fi
+
+# go
+for ((iCop = 0; iCop<$num_Copes; iCop++ ))
+do
+    key_Task=${lst_Tasks[iCop]}
+    echo "###### Getting data in $key_Task"
+
+    lst_DataZips=$(ls -1 $dir_AnalysisRetest/*$key_Task*analysis_s2.zip)
+    for file_DataZip in $lst_DataZips
+    do
+
+        echo "#### Processing $file_DataZip"
+
+        # Now get keys
+        nam_DataZip=$(basename $file_DataZip)
+        nam_Subject=$(echo $nam_DataZip | cut -d '_' -f 1)
+
+        # To get the test zip file
+        file_DataTestZip=$(ls $dir_Analysis/$nam_Subject*$key_Task*analysis_s2.zip)
+        lst_TestRetest=($file_DataTestZip $file_DataZip)
+        if [ -z $file_DataTestZip ]
+        then
+            continue
+        fi
+
+        for ((iTest=0; iTest<2; iTest++))
+        do
+            if [ -d $dir_Tmp ]
+            then
+                rm -r $dir_Tmp # clear the tmp folder
+            fi
+            mkdir $dir_Tmp
+            # get keys
+            key_Even=${lst_Evens[iCop]}
+
+            # Go unzip
+            for key_Cope in ${lst_Copes[iCop]}
+            do
+                echo "#### $key_Cope"
+                unzip -oj ${lst_TestRetest[iTest]} \
+                    $nam_Subject/MNINonLinear/Results/tfMRI_$key_Task/*_level2_MSMAll.feat/GrayordinatesStats/$key_Cope.feat/cope1.dtseries.nii \
+                    -d $dir_Tmp
+
+                # into fsavg surface
+                # lh
+                wb_command -cifti-separate $dir_Tmp/cope1.dtseries.nii \
+                    COLUMN -metric CORTEX_LEFT $dir_Tmp/$key_Cope'_'MSMALL_lh_s2.func.gii
+                wb_command -metric-resample $dir_Tmp/$key_Cope'_'MSMALL_lh_s2.func.gii \
+                    /home/gululu/Disks/Fast/SoftwaresForMRI/standard_mesh_atlases/resample_fsaverage/fs_LR-deformed_to-fsaverage.L.sphere.32k_fs_LR.surf.gii \
+                    /home/gululu/Disks/Fast/SoftwaresForMRI/standard_mesh_atlases/resample_fsaverage/fsaverage_std_sphere.L.164k_fsavg_L.surf.gii \
+                    ADAP_BARY_AREA $dir_Tmp/$key_Cope'_'fsavg_lh_s2.func.gii \
+                    -area-metrics /home/gululu/Disks/Fast/SoftwaresForMRI/standard_mesh_atlases/resample_fsaverage/fs_LR.L.midthickness_va_avg.32k_fs_LR.shape.gii \
+                    /home/gululu/Disks/Fast/SoftwaresForMRI/standard_mesh_atlases/resample_fsaverage/fsaverage.L.midthickness_va_avg.164k_fsavg_L.shape.gii
+                mri_surf2surf --srcsubject fsaverage --srcsurfval $dir_Tmp/$key_Cope'_'fsavg_lh_s2.func.gii \
+                    --trgsubject fsaverage --trgsurfval $dir_Out/Cope_$nam_Subject'_'$key_Task'_'${key_TestRetest[iTest]}'_'$key_Even'_fsavg_lh_s4.func.gii' \
+                    --hemi lh --fwhm-trg 4
+
+                # rh
+                wb_command -cifti-separate $dir_Tmp/cope1.dtseries.nii \
+                    COLUMN -metric CORTEX_RIGHT $dir_Tmp/$key_Cope'_'MSMALL_rh_s2.func.gii
+                wb_command -metric-resample $dir_Tmp/$key_Cope'_'MSMALL_rh_s2.func.gii \
+                    /home/gululu/Disks/Fast/SoftwaresForMRI/standard_mesh_atlases/resample_fsaverage/fs_LR-deformed_to-fsaverage.R.sphere.32k_fs_LR.surf.gii \
+                    /home/gululu/Disks/Fast/SoftwaresForMRI/standard_mesh_atlases/resample_fsaverage/fsaverage_std_sphere.R.164k_fsavg_R.surf.gii \
+                    ADAP_BARY_AREA $dir_Tmp/$key_Cope'_'fsavg_rh_s2.func.gii \
+                    -area-metrics /home/gululu/Disks/Fast/SoftwaresForMRI/standard_mesh_atlases/resample_fsaverage/fs_LR.R.midthickness_va_avg.32k_fs_LR.shape.gii \
+                    /home/gululu/Disks/Fast/SoftwaresForMRI/standard_mesh_atlases/resample_fsaverage/fsaverage.R.midthickness_va_avg.164k_fsavg_R.shape.gii
+                mri_surf2surf --srcsubject fsaverage --srcsurfval $dir_Tmp/$key_Cope'_'fsavg_rh_s2.func.gii \
+                    --trgsubject fsaverage --trgsurfval $dir_Out/Cope_$nam_Subject'_'$key_Task'_'${key_TestRetest[iTest]}'_'$key_Even'_fsavg_rh_s4.func.gii' \
+                    --hemi rh --fwhm-trg 4
+            done # for key_Cope
+
+            # break # debug
+        done # for iTest
+        # break # debug
+    done # for File_DataZip
+    # break # debug
+done # for iCop

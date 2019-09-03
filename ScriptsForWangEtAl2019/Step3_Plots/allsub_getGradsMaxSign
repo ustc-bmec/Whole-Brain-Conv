@@ -1,0 +1,67 @@
+#!/bin/bash
+# Sub-script of allsubjects, To generate one volume heatmap of the classifications,
+# by get the signed max along the time course for each voxel of the gradients.
+# Then refit the grads to the standard MNI space.
+
+# parcell the inputs
+if [ $# \> 0 ]
+then # data folder inputted
+    dir_data=$1
+else
+    dir_main=/home/gululu/Disks/DataMore/Data2017/ProjBoldNN/Analysis_ForAll_0510
+    dir_data=/home/gululu/Disks/NeuroRaid/PlusRaid/Visualize_ALL_vis_4_24_with_logsoft/AllRepeatsCutAndLabel
+fi
+if [ $# \> 1 ]
+then # output folder inputted
+    dir_out=$2
+else
+    dir_out=$dir_main/MaxSignGradients
+fi
+if [ $# \> 2 ]
+then # tmp folder designated
+    dir_tmp=$3/tmp787
+else
+    dir_tmp=/home/gululu/Disks/Fast/TMP/tmp787
+fi
+
+# first, list all grdients
+lst_data=`ls $dir_data/*.nii.gz`
+
+# clear the output folder
+# if ( -d $dir_outMask ) then
+#   echo "output folder exists, now remove it"
+#   echo $dir_outMask
+#   echo $dir_outGrads
+#   rm -r $dir_outMask
+#   rm -r $dir_outGrads
+# endif # -d $dir_outMask
+if [ ! -d $dir_out ]
+then
+    mkdir $dir_out
+# else
+# continue
+fi
+
+# go
+for data_grad in $lst_data
+do
+    if [ -d $dir_tmp ]; then rm -r $dir_tmp; fi # clear the tmp folder
+    mkdir $dir_tmp
+
+    # get the info of the
+    nam_data=`basename $data_grad`
+
+    # check duplications
+    if [ -f $dir_out/max_$nam_data ]; then continue; fi
+    # if [ -f $dir_out/max_$nam_data ]; then  rm $dir_out/max_$nam_data; fi
+
+    # get the max
+    3dTstat -signed_absmax -prefix $dir_out/max_$nam_data $data_grad
+    # 3drefit -orient RPI -xorigin_raw -90 -yorigin_raw 126 -zorigin_raw -72 \
+    #     -xdel 2 -ydel 2 -zdel 2 -space MNI $dir_out/max_$nam_data
+    # for clipped data
+    3drefit -orient RPI -xorigin_raw -74 -yorigin_raw 110 -zorigin_raw -72 \
+            -xdel 2 -ydel 2 -zdel 2 -space MNI $dir_out/max_$nam_data
+
+    # break # for debug
+done # for data_grad

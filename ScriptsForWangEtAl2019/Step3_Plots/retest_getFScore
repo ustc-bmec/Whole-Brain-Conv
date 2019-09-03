@@ -1,0 +1,56 @@
+#!/bin/bash
+# to copy searchlight generated f score mapping in the
+# Analy_ForAll_0510 folder
+# restest_getAccs lst_dir dir_out
+if [ $# \> 2 ]
+then #
+    lst_dirSearchlight=$1
+    lst_Condition=$2
+    dir_Out=$3
+elif [ $# \> 0 ]
+then # only one input, error
+    echo "The function need 0 or 3 inputs, check it!"
+    exit 1
+else
+    lst_dirSearchlight=( \
+      "/home/gululu/Disks/DataMore/Data2017/ProjBoldNN/HCP_SVM_TestRetest_Motor/DecodingOutputsMotor_20190601T151319" \
+      "/home/gululu/Disks/DataMore/Data2017/ProjBoldNN/HCP_SVM_TestRetest_WM/DecodingOutputsWM_20190601T113422")
+    lst_Condition=( "lf lh rf t" "0bkbody 2bkbody" )
+    dir_Out="/home/gululu/Disks/DataMore/Data2017/ProjBoldNN/Analysis_ForAll_0510/FScore_TestRetest"
+fi
+pfx_Out='Searchlight-r3voxel_FScore_Retest'
+num_Dir=`echo ${#lst_dirSearchlight[@]}`
+prx_Data='res_FScore'
+
+if [ ! -d $dir_Out ]
+then
+  mkdir $dir_Out
+fi
+
+# go
+for (( ind_Dir=0; ind_Dir<$num_Dir; ind_Dir++))
+do
+    #########################
+    # get the keys of the task
+    dir_Searchlight=${lst_dirSearchlight[$ind_Dir]}
+    num_Chance=${lst_Chance[$ind_Dir]}
+
+    for key_condition in ${lst_Condition[$ind_Dir]}
+    do
+        nam_Data=$prx_Data$key_condition'+tlrc.HEAD'
+        # list the subdirectories
+        # lst_vali=`ls -1 -R $dir_Searchlight/*$nam_Data`
+        lst_vali=`find $dir_Searchlight -name $nam_Data`
+
+        # do it for each validation
+        for fil_vali in $lst_vali
+        do
+            nam_dirTask=$(basename $(dirname $(dirname $(dirname $fil_vali))))
+            key_Task=`echo $nam_dirTask | rev | cut -d _ -f 1 | rev`
+            key_vali=$(basename $(dirname $fil_vali))
+            key_condi=`echo ${key_condition/bk/"bk-"}`
+            3dcopy $fil_vali $dir_Out/$pfx_Out'_'$key_Task'_'$key_condi'_'$key_vali'_gt_99_pred_99'.nii.gz
+            # break # for debug
+        done # for dir_vali
+    done # for key_condition
+done # for dir_Searchlight

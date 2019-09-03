@@ -1,0 +1,82 @@
+#!/bin/bash
+# sub-script of allsubjects, get CohenD effect of gradients for each task
+
+
+if [ $# \> 0 ]
+then # data folder inputted
+    dir_data=$1
+else
+    dir_main=/home/gululu/Disks/DataMore/Data2017/ProjBoldNN/Analysis_ForAll_0510
+    dir_data=$dir_main/MaxGradients
+fi
+if [ $# \> 1 ]
+then # output folder inputted
+    dir_Out=$2
+else
+    dir_Out=$dir_main/Results_TestRetestMaps
+fi
+if [ $# \> 2 ]
+then # tmp folder designated
+    dir_tmp=$3/tmp187
+else
+    dir_tmp=/home/gululu/Disks/Fast/TMP/tmp187
+fi
+if [ $# \> 3 ]
+then # task list designated
+    lst_tasks=$4
+else
+    lst_tasks=('lf' 'rf' '0bk-body' '2bk-body')
+fi
+
+# dir_data=$dir_main/Tmp # for debug
+dir_Logs=$dir_main/Logs
+pfx_Out=Grad-Max_CohenD
+echo $lst_tasks
+# lst_tasks=('RELATIONAL') # for debug
+# fil_log=$dir_Logs/MaxNorm_`date '+%Y%m%d_%H%M'`.txt
+
+if [ ! -d $dir_Out ]
+then
+    mkdir $dir_Out
+fi
+
+# go
+for key_task in ${lst_tasks[*]}
+do
+    ###########################
+    # Cohen of all repeats of each task
+    if [ -d $dir_tmp ]; then rm -r $dir_tmp; fi # clear the tmp folder
+    mkdir $dir_tmp
+    for key_Test in Retest
+    do
+        for key_hemi in lh rh
+        do
+            lst_data=`ls -1 $dir_data/*$key_Test*'_'$key_task'_'*Right_fsavg_$key_hemi'_'s4.func.gii`
+            tmp_nam_data=$(basename $(echo $lst_data | awk '{print $1;}'))
+            echo $(echo $lst_data | awk '{print $1;}')
+            tmp_key_parts=`echo $tmp_nam_data | cut -d . -f 1`
+            tmp_key_event=`echo $tmp_key_parts | cut -d _ -f 6-`
+            tmp_Key_task=`echo $tmp_key_parts | cut -d _ -f 4`
+            echo $tmp_key_event # now we get the key word of the task
+
+            # calculate the std and mean
+            3dMean -prefix ./std_$key_hemi.func.gii -sd $lst_data
+            3dMean -prefix ./mean_$key_hemi.func.gii $lst_data
+            mv ./std_$key_hemi.func.gii $dir_tmp/std_$key_hemi.func.gii
+            mv ./mean_$key_hemi.func.gii $dir_tmp/mean_$key_hemi.func.gii
+
+
+            # output the final result
+            if [ -f $dir_Out/$pfx_Out'_'$key_Test'_'$tmp_Key_task'_'$tmp_key_event.func.gii ]
+            then
+                rm $dir_Out/$pfx_Out'_'$key_Test'_'$tmp_Key_task'_'$tmp_key_event.func.gii # clear the already exist file
+            fi
+            3dcalc -a $dir_tmp/mean_$key_hemi.func.gii -b $dir_tmp/std_$key_hemi.func.gii -expr '-a/b' \
+                -prefix $dir_Out/$pfx_Out'_'$key_Test'_'$tmp_Key_task'_'$tmp_key_event.func.gii
+            mv ./$pfx_Out'_'$key_Test'_'$tmp_Key_task'_'$tmp_key_event.func.gii \
+                $dir_Out/$pfx_Out'_'$key_Test'_'$tmp_Key_task'_'$tmp_key_event.func.gii
+
+        done # for key_hemi
+    done # for key_Test
+    # break # for debug
+done # foreach data

@@ -1,0 +1,85 @@
+#!/bin/bash
+# sub-script of allsubjects, get 2mm smoothed surface of CohenD effect of gradients for each task
+
+if [ $# \> 0 ]
+then # data/output folder inputted
+    dir_data=$1
+    dir_out=$1
+else
+    dir_main=/home/gululu/Disks/DataMore/Data2017/ProjBoldNN/Analysis_ForAll_0510
+    dir_data=$dir_main/MaxGradients
+    dir_out=$dir_main/MaxGradients
+fi
+if [ $# \> 1 ]
+then # tmp folder designated
+    dir_tmp=$2/tmp929
+else
+    dir_tmp=/home/gululu/Disks/Fast/TMP/tmp929
+fi
+
+lst_data=`ls $dir_data/*.nii.gz`
+# set fil_log = $dir_Logs/MaxNorm_`date '+%Y%m%d_%H%M'`.txt
+
+# clear the output folder
+# if ( -d $dir_outMask ) then
+#   echo "output folder exists, now remove it"
+#   echo $dir_outMask
+#   echo $dir_outGrads
+#   rm -r $dir_outMask
+#   rm -r $dir_outGrads
+# endif # -d $dir_outMask
+if [ ! -d $dir_out ]
+then
+    mkdir $dir_out
+fi
+
+# go
+for data_grad in $lst_data
+do
+    if [ -d $dir_tmp ]
+    then
+       rm -r $dir_tmp # clear the tmp folder
+    fi
+    mkdir $dir_tmp
+
+    # get the info
+    nam_data=`basename $data_grad`
+    nam_data=`echo $nam_data|cut -d '.' -f 1`
+    echo $data_grad
+    echo $nam_data
+
+    # check if classified right
+    ind_label=`echo $nam_data | rev | cut -d '_' -f 3`
+    ind_pred=`echo $nam_data | rev | cut -d '_' -f 1`
+    if [ "$ind_label" -eq "$ind_pred" ]
+    then
+        sfx_lh="Right_fsavg_lh_s4.func.gii"
+        sfx_rh="Right_fsavg_rh_s4.func.gii"
+    else
+        sfx_lh="Wrong_fsavg_lh_s4.func.gii"
+        sfx_rh="Wrong_fsavg_rh_s4.func.gii"
+    fi
+
+    # normalize to standard MNI space
+    if [ -f $dir_out/$nam_data'_'$sfx_lh ]; then
+        continue
+    fi
+    mri_vol2vol --mov $data_grad --targ ./MNI152_T1_1mm_brain.nii.gz \
+        --regheader --o $dir_tmp/grad_reg.nii.gz
+
+    # map to the fsaverage surface
+    # lh
+    mri_vol2surf --mov $dir_tmp/grad_reg.nii.gz --mni152reg --hemi lh --surf white \
+        --o $dir_tmp/grad_reg_lh.func.gii
+    mri_surf2surf --srcsubject fsaverage --srcsurfval $dir_tmp/grad_reg_lh.func.gii \
+        --trgsubject fsaverage --trgsurfval $dir_out/$nam_data'_'$sfx_lh \
+        --hemi lh --fwhm-trg 4
+    #rh
+    mri_vol2surf --mov $dir_tmp/grad_reg.nii.gz --mni152reg --hemi rh --surf white \
+        --o $dir_tmp/grad_reg_rh.func.gii
+    mri_surf2surf --srcsubject fsaverage --srcsurfval $dir_tmp/grad_reg_rh.func.gii \
+        --trgsubject fsaverage --trgsurfval $dir_out/$nam_data'_'$sfx_rh \
+        --hemi rh --fwhm-trg 4
+
+    # break # for debug
+done # for data
