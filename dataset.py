@@ -23,6 +23,6 @@ class BrainDataset(Dataset):
             data = data[8:-8, 8:-8, :-10, select_idx-self.input_shape:select_idx]
         else:
             data = data[8:-8, 8:-8, :-10, :self.input_shape]
-        data = data / data.max(axis=3)[:, :, :, np.newaxis]
+        data = data / np.amax(data)
         data[~ np.isfinite(data)] = 0
         return data.transpose(3, 0, 1, 2)
